@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// --- Accounts ---------------------------------------------------------------
+
+// One row per account: sign-up fields, the onboarding wizard's answers
+// (flattened onto the same row - there's only ever one "current" answer set
+// per user), and when they acknowledged the injury-risk disclaimer. Null
+// onboarding/risk fields just mean the user hasn't reached that step yet.
+model User {
+  id       String  @id @default(cuid())
+  email    String  @unique
+  password String
+  plan     String? // 'basic' | 'premium'
+
+  firstName String @default("")
+  lastName  String @default("")
+  height    String @default("")
+  weight    String @default("")
+
+  duration      String? // '0-30' | '31-60' | '60-90' | '90+'
+  daysPerWeek   Int?
+  activityLevel String?
+  priority      String? // 'running' | 'lifting' | 'both'
+
+  riskAcknowledgedAt DateTime?
+  createdAt          DateTime  @default(now())
+
+  scheduledWorkouts ScheduledWorkout[]
+  runCompletions    RunCompletion[]
+  exerciseLogs      ExerciseLog[]
+}
+
+// --- Exercise catalog ---------------------------------------------------------
+
+model Exercise {
+  id              String @id // slug, e.g. "bench-press"
+  name            String
+  muscleGroup     String
+  equipment       String
+  description     String
+  recommendedReps String
+
+  workoutExercises WorkoutExercise[]
+  logs             ExerciseLog[]
+}
+
+// One set logged against one exercise by one user (weight + reps + when).
+// A single shared table with an exerciseId column, rather than a separate
+// table per exercise - the exercise catalog is just data (see Exercise
+// above), so a per-exercise table would need a new migration every time an
+// exercise is added. Filtering this table by exerciseId gives the same "all
+// the lifts for exercise X" view without that cost.
+model ExerciseLog {
+  id       String   @id @default(cuid())
+  weight   Float
+  reps     Int
+  loggedAt DateTime @default(now())
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@index([userId, exerciseId, loggedAt])
+}
+
+// --- Lifting workouts -----------------------------------------------------
+
+model LiftingWorkout {
+  id    String @id // slug, e.g. "upper-body"
+  title String
+
+  exercises         WorkoutExercise[]
+  activities        WorkoutActivity[]
+  scheduledWorkouts ScheduledWorkout[]
+}
+
+// A workout's ordered list of exercises - a join table (rather than a plain
+// exerciseIds array) so the same exercise can appear in multiple workouts,
+// and order is a real column instead of relying on array position.
+model WorkoutExercise {
+  id    Int @id @default(autoincrement())
+  order Int
+
+  workoutId String
+  workout   LiftingWorkout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@unique([workoutId, exerciseId])
+}
+
+// A workout's warmup/cooldown steps. Unlike exercises these aren't drawn
+// from a shared catalog - each is a one-off name+description tied to a
+// single workout - so they're columns here rather than another join.
+model WorkoutActivity {
+  id          Int    @id @default(autoincrement())
+  phase       String // 'warmup' | 'cooldown'
+  order       Int
+  name        String
+  description String
+
+  workoutId String
+  workout   LiftingWorkout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  @@index([workoutId, phase])
+}
+
+// --- Runs -------------------------------------------------------------------
+
+model Run {
+  id Int @id // matches the existing 1-9 numbering
+
+  phases            RunPhase[]
+  scheduledWorkouts ScheduledWorkout[]
+  completions       RunCompletion[]
+}
+
+// One segment of a run (warmup/run/walk/cooldown). Runs vary in how many
+// segments they have and in what order/durations - modeling each segment as
+// its own row (ordered by `order`) instead of fixed columns is what lets a
+// run mix any number of run/walk blocks of any length.
+model RunPhase {
+  id              Int    @id @default(autoincrement())
+  order           Int
+  type            String // 'warmup' | 'run' | 'walk' | 'cooldown'
+  durationSeconds Int
+
+  runId Int
+  run   Run @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, order])
+}
+
+// Whether a given user has finished a given run - the Runs page's grid reads
+// this back (via GET /api/runs?userId=...) every time it's opened, so
+// completion survives navigating away and back or reloading the page,
+// instead of resetting to blank like the old client-only state did. One row
+// per user/run pair (re-completing a run just bumps completedAt) - unlike
+// ScheduledWorkout below, this isn't tied to a particular calendar date,
+// since the Runs page tracks progress through the fixed 1-9 plan rather than
+// a recurring schedule.
+model RunCompletion {
+  id          String   @id @default(cuid())
+  completedAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  runId Int
+  run   Run @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, runId])
+}
+
+// --- Scheduling ---------------------------------------------------------------
+
+// One occurrence of a workout or run on a specific date for a specific user -
+// what both the calendar and "today's workout" are queries against, and
+// where a run/lift actually gets marked done (the catalog tables above just
+// describe workout/run content, not who did them or when).
+model ScheduledWorkout {
+  id   String   @id @default(cuid())
+  date DateTime
+  type String // 'lift' | 'run'
+
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  workoutId String?
+  workout   LiftingWorkout? @relation(fields: [workoutId], references: [id])
+
+  runId Int?
+  run   Run? @relation(fields: [runId], references: [id])
+
+  @@index([userId, date])
+}
