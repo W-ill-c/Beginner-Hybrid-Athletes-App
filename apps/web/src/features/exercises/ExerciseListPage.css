@@ -1,0 +1,177 @@
+.exercise-list-page {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 20px;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.exercise-list-page h1 {
+  font-size: 32px;
+  margin: 0 0 8px;
+}
+
+.exercise-list-page h1.group-title {
+  margin-bottom: 24px;
+}
+
+.page-subtitle {
+  color: var(--text);
+  margin-bottom: 24px;
+}
+
+.back-link-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.back-link {
+  display: inline-block;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.back-link:hover {
+  color: var(--text-h);
+}
+
+.muscle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+}
+
+.muscle-card {
+  aspect-ratio: 1.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-h);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.muscle-card:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.exercise-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.exercise-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font: inherit;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.exercise-card:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.exercise-card-main {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.exercise-card-main:hover .exercise-name {
+  color: var(--accent);
+}
+
+.exercise-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.btn-add-small,
+.btn-remove-small {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
+
+.btn-add-small:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  border-color: var(--border);
+  background: var(--code-bg);
+  color: var(--text);
+}
+
+.btn-remove-small {
+  border-color: rgba(224, 57, 62, 0.4);
+  background: transparent;
+  color: #e0393e;
+}
+
+.btn-remove-small:hover {
+  background: rgba(224, 57, 62, 0.1);
+}
+
+.exercise-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.exercise-equipment {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.activity-card-description {
+  font-size: 13px;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (max-width: 480px) {
+  .muscle-card {
+    aspect-ratio: 2;
+  }
+}
