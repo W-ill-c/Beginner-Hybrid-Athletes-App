@@ -1,0 +1,135 @@
+.lifting-workouts-page {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 48px 20px;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.lifting-workouts-page h1 {
+  font-size: 32px;
+  margin: 0 0 24px;
+}
+
+.workout-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.workout-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.workout-card h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.workout-exercise-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.workout-exercise-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.workout-exercise-row:last-child {
+  border-bottom: none;
+}
+
+.workout-exercise-name {
+  font: inherit;
+  font-size: 15px;
+  color: var(--text-h);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.workout-exercise-name:hover {
+  color: var(--accent);
+}
+
+.delete-btn {
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.delete-btn:hover {
+  color: #e0393e;
+  background: rgba(224, 57, 62, 0.1);
+}
+
+.workout-empty {
+  padding: 10px 0;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.workout-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+
+.workout-card-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.edit-btn {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
+
+.add-btn,
+.details-btn {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid var(--border);
+  background: transparent;
+  color: var(--text);
+}
+
+.add-btn:hover,
+.details-btn:hover {
+  border-color: var(--accent-border);
+  color: var(--text-h);
+}
