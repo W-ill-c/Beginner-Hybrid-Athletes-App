@@ -1,0 +1,126 @@
+.workout-picker-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 20px;
+  box-sizing: border-box;
+  z-index: 40;
+}
+
+.workout-picker-card {
+  width: 100%;
+  max-width: 360px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 28px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  text-align: left;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.workout-picker-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 22px;
+  line-height: 1;
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: 6px;
+}
+
+.workout-picker-close:hover {
+  color: var(--text-h);
+}
+
+.workout-picker-card h2 {
+  margin: 0 0 16px;
+  font-size: 20px;
+  padding-right: 24px;
+}
+
+.workout-picker-list {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.workout-picker-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
+  background: var(--code-bg);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 12px 14px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.workout-picker-option:hover {
+  border-color: var(--accent-border);
+}
+
+.workout-picker-option.selected {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.workout-picker-option:disabled {
+  color: var(--text);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.workout-picker-option-note {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text);
+}
+
+.workout-picker-empty {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.workout-picker-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-done {
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
+
+.btn-done:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
