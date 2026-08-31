@@ -1,0 +1,142 @@
+.side-nav {
+  /* Spring - the design's secondary accent, used as the sidebar's own
+     background so it reads as a distinct panel from the page content. */
+  --side-nav-bg: #bfc4a3;
+
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--side-nav-bg);
+  padding: 24px 12px;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+@media (prefers-color-scheme: dark) {
+  .side-nav {
+    --side-nav-bg: #34413a;
+  }
+}
+
+.side-nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 12px;
+  margin-bottom: 24px;
+}
+
+.side-nav-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.side-nav-brand-title {
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--text-h);
+}
+
+.side-nav-brand-subtitle {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.side-nav-toggle {
+  display: none;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 2px solid var(--text-h);
+  border-radius: 8px;
+  color: var(--text-h);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.side-nav-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  text-align: left;
+  font: inherit;
+  font-size: 15px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-h);
+  opacity: 0.75;
+  cursor: pointer;
+}
+
+.nav-icon {
+  width: 16px;
+  margin-right: 10px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.nav-link:hover {
+  background: rgba(43, 54, 46, 0.08);
+  opacity: 1;
+}
+
+.nav-link.active {
+  background: var(--accent);
+  color: var(--bg);
+  opacity: 1;
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .side-nav {
+    width: 100%;
+    padding: 12px 16px;
+    box-sizing: border-box;
+  }
+
+  .side-nav-header {
+    padding: 0;
+    margin-bottom: 0;
+  }
+
+  .side-nav-brand-subtitle {
+    display: none;
+  }
+
+  .side-nav-toggle {
+    display: flex;
+  }
+
+  /* Collapsed into a dropdown by default, revealed below the top bar once
+     the hamburger button is toggled open. */
+  .side-nav-items {
+    display: none;
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 2px solid rgba(43, 54, 46, 0.15);
+  }
+
+  .side-nav.menu-open .side-nav-items {
+    display: flex;
+  }
+
+  .nav-link {
+    padding: 12px 10px;
+  }
+}
