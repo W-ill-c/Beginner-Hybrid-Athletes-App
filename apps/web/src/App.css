@@ -12,3 +12,19 @@
   padding: 24px;
   box-sizing: border-box;
 }
+
+.app-layout {
+  flex-grow: 1;
+  display: flex;
+}
+
+.app-main {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  .app-layout {
+    flex-direction: column;
+  }
+}
