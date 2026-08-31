@@ -1,4 +1,3 @@
-import { EXERCISES } from './exercises'
 import type { Exercise } from './exercises'
 
 // Dummy workout data: the lifting workouts (with their warmup/cooldown
@@ -86,7 +85,9 @@ export const INITIAL_WORKOUTS: LiftingWorkout[] = [
 
 // Looks up the full Exercise record for a given exercise id, since workouts
 // only store ids (see LiftingWorkout.exerciseIds above) rather than copies
-// of the exercise data.
-export function getExerciseById(id: string): Exercise | undefined {
-  return EXERCISES.find((exercise) => exercise.id === id)
+// of the exercise data. Takes the catalog as a parameter (rather than
+// importing the static one) since callers now use the catalog fetched from
+// the backend at login - see App.tsx.
+export function getExerciseById(exercises: Exercise[], id: string): Exercise | undefined {
+  return exercises.find((exercise) => exercise.id === id)
 }

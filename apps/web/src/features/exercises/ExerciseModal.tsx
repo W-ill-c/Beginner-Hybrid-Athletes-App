@@ -1,36 +1,21 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { format, isToday } from 'date-fns'
 import './ExerciseModal.css'
 import Tabs from '../../shared/Tabs'
 import type { TabItem } from '../../shared/Tabs'
 import WorkoutPickerModal from './WorkoutPickerModal'
-import { EXERCISES } from '../../data/exercises'
 import type { Exercise } from '../../data/exercises'
 import type { LiftingWorkout } from '../../data/workouts'
+import { createExerciseLog, fetchExerciseLogs } from '../../api/client'
+import type { ApiExerciseLog } from '../../api/client'
+import { addCachedLog, getCachedLogs, setCachedLogs } from './exerciseLogStore'
 
 // Pop-up modal that shows the full details for a single exercise: how to do
 // it, a place to log today's sets, related exercises, and (in some contexts)
 // buttons for adding it to a workout.
 //
-// There's no backend yet, so logged sets and log history are just kept in
-// local state - they reset whenever the modal is closed and reopened.
-
-interface LogEntry {
-  weight: number
-  reps: number
-}
-
-interface HistoryEntry extends LogEntry {
-  date: string
-}
-
-// Dummy past-workout data shown when the user opens "log history".
-const LOG_HISTORY: HistoryEntry[] = [
-  { date: 'Jul 22', weight: 60, reps: 8 },
-  { date: 'Jul 18', weight: 57.5, reps: 8 },
-  { date: 'Jul 14', weight: 57.5, reps: 10 },
-  { date: 'Jul 10', weight: 55, reps: 10 },
-  { date: 'Jul 6', weight: 55, reps: 8 },
-]
+// Logged sets persist via GET/POST /api/exercises/:id/logs, but only ever
+// get fetched once per exercise per session - see exerciseLogStore.ts.
 
 // Passed in only when the modal should let the user add this exercise to
 // any of their workouts (used from the Exercise List page).
@@ -52,6 +37,12 @@ interface QuickAddConfig {
 
 interface ExerciseModalProps {
   exercise: Exercise
+  // The full exercise catalog, for the Related Exercises tab. Fetched once
+  // at login (see App.tsx) rather than by this modal itself.
+  exercises: Exercise[]
+  // Whose logs to fetch/save - null before sign-up/login finishes, in which
+  // case the Logging tab just can't save anything yet.
+  userId: string | null
   onClose: () => void
   showAddControls?: boolean
   isAdded?: boolean
@@ -76,6 +67,8 @@ function getFirstSentence(description: string): string {
 
 function ExerciseModal({
   exercise,
+  exercises,
+  userId,
   onClose,
   showAddControls = false,
   isAdded = false,
@@ -92,11 +85,32 @@ function ExerciseModal({
   // Controlled inputs for the "log a new set" form on the Logging tab.
   const [weightInput, setWeightInput] = useState('')
   const [repsInput, setRepsInput] = useState('')
-  const [todayLogs, setTodayLogs] = useState<LogEntry[]>([])
+  // Seeded synchronously from the cache when available, so a re-opened
+  // modal shows its logs immediately with no loading flash at all.
+  const [logs, setLogs] = useState<ApiExerciseLog[]>(() => getCachedLogs(exercise.id) ?? [])
+  const [logsLoading, setLogsLoading] = useState(() => Boolean(userId) && !getCachedLogs(exercise.id))
+  const [logError, setLogError] = useState<string | null>(null)
+  const [savingLog, setSavingLog] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
 
   // Whether the "add this exercise to a workout" picker modal is open.
   const [showWorkoutPicker, setShowWorkoutPicker] = useState(false)
+
+  // Fetches this exercise's logs once per session: if another modal already
+  // fetched them earlier (see the lazy initial state above), this is a
+  // no-op and never hits the backend again (see exerciseLogStore.ts).
+  useEffect(() => {
+    if (!userId || getCachedLogs(exercise.id)) return
+    fetchExerciseLogs(exercise.id, userId)
+      .then(({ logs: fetched }) => {
+        setCachedLogs(exercise.id, fetched)
+        setLogs(fetched)
+      })
+      .catch((err) => {
+        setLogError(err instanceof Error ? err.message : 'Could not load log history.')
+      })
+      .finally(() => setLogsLoading(false))
+  }, [exercise.id, userId])
 
   // The small "+ Add" button next to the tags only makes sense when we're
   // not already showing the full Add/Added/Remove controls at the bottom.
@@ -107,9 +121,12 @@ function ExerciseModal({
 
   // Other exercises that target the same muscle group, shown in the
   // "Related Exercises" tab.
-  const relatedExercises = EXERCISES.filter(
+  const relatedExercises = exercises.filter(
     (candidate) => candidate.muscleGroup === exercise.muscleGroup && candidate.id !== exercise.id,
   )
+
+  const todayLogs = logs.filter((log) => isToday(new Date(log.loggedAt)))
+  const historyLogs = logs.filter((log) => !isToday(new Date(log.loggedAt)))
 
   // Clicking a related exercise either opens a nested modal (when this modal
   // is the "root" one) or asks the root modal to swap its nested exercise
@@ -123,17 +140,30 @@ function ExerciseModal({
   }
 
   // The "Add" button in the logging form only works once both fields have a
-  // positive number typed in.
+  // positive number typed in (and there's a signed-in user to save against).
   const canAddLog =
+    Boolean(userId) &&
+    !savingLog &&
     weightInput.trim() !== '' &&
     repsInput.trim() !== '' &&
     Number(weightInput) > 0 &&
     Number(repsInput) > 0
 
-  function handleAddLog() {
-    setTodayLogs((prev) => [...prev, { weight: Number(weightInput), reps: Number(repsInput) }])
-    setWeightInput('')
-    setRepsInput('')
+  async function handleAddLog() {
+    if (!userId) return
+    setSavingLog(true)
+    setLogError(null)
+    try {
+      const log = await createExerciseLog(exercise.id, userId, Number(weightInput), Number(repsInput))
+      addCachedLog(exercise.id, log)
+      setLogs((prev) => [log, ...prev])
+      setWeightInput('')
+      setRepsInput('')
+    } catch (err) {
+      setLogError(err instanceof Error ? err.message : 'Could not save that set.')
+    } finally {
+      setSavingLog(false)
+    }
   }
 
   function handleToggleHistory() {
@@ -196,14 +226,18 @@ function ExerciseModal({
           </button>
         </div>
 
+        {logError && <p className="field-hint field-error">{logError}</p>}
+
         <div className="log-section">
           <h3>Today</h3>
-          {todayLogs.length === 0 ? (
+          {logsLoading ? (
+            <p className="log-empty">Loading...</p>
+          ) : todayLogs.length === 0 ? (
             <p className="log-empty">No sets logged yet.</p>
           ) : (
             <ul className="log-list">
-              {todayLogs.map((log, index) => (
-                <li key={index}>
+              {todayLogs.map((log) => (
+                <li key={log.id}>
                   {log.weight} kg &times; {log.reps} reps
                 </li>
               ))}
@@ -217,14 +251,15 @@ function ExerciseModal({
 
         {showHistory && (
           <ul className="log-history-list">
-            {LOG_HISTORY.map((entry) => (
-              <li key={entry.date}>
-                <span className="log-history-date">{entry.date}</span>
+            {historyLogs.map((entry) => (
+              <li key={entry.id}>
+                <span className="log-history-date">{format(new Date(entry.loggedAt), 'MMM d')}</span>
                 <span className="log-history-value">
                   {entry.weight} kg &times; {entry.reps} reps
                 </span>
               </li>
             ))}
+            {historyLogs.length === 0 && <li className="log-empty">No past sets logged.</li>}
           </ul>
         )}
       </div>
@@ -335,6 +370,8 @@ function ExerciseModal({
         <ExerciseModal
           key={childExercise.id}
           exercise={childExercise}
+          exercises={exercises}
+          userId={userId}
           onClose={handleCloseChildExercise}
           onNavigateRelated={setChildExercise}
           quickAddWorkout={quickAddWorkout}

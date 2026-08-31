@@ -33,6 +33,7 @@ interface ExerciseListPageProps {
   addTargetWorkoutId: string | null
   workouts: LiftingWorkout[]
   exercises: Exercise[]
+  userId: string | null
   onAddExerciseToWorkout: (workoutId: string, exerciseId: string) => void
   onRemoveExerciseFromWorkout: (workoutId: string, exerciseId: string) => void
   onAddActivityToWorkout: (
@@ -48,6 +49,7 @@ function ExerciseListPage({
   addTargetWorkoutId,
   workouts,
   exercises,
+  userId,
   onAddExerciseToWorkout,
   onRemoveExerciseFromWorkout,
   onAddActivityToWorkout,
@@ -212,6 +214,8 @@ function ExerciseListPage({
       {selectedExercise && (
         <ExerciseModal
           exercise={selectedExercise}
+          exercises={exercises}
+          userId={userId}
           onClose={handleCloseExerciseModal}
           showAddControls={addTargetWorkoutId !== null}
           isAdded={isExerciseAdded(selectedExercise.id)}

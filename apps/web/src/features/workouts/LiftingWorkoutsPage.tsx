@@ -12,6 +12,8 @@ import './LiftingWorkoutsPage.css'
 
 interface LiftingWorkoutsPageProps {
   workouts: LiftingWorkout[]
+  exercises: Exercise[]
+  userId: string | null
   onAddExercise: (workoutId: string) => void
   onDeleteExercise: (workoutId: string, exerciseId: string) => void
   onViewDetails: (workoutId: string) => void
@@ -19,6 +21,8 @@ interface LiftingWorkoutsPageProps {
 
 function LiftingWorkoutsPage({
   workouts,
+  exercises,
+  userId,
   onAddExercise,
   onDeleteExercise,
   onViewDetails,
@@ -59,7 +63,7 @@ function LiftingWorkoutsPage({
 
               <ul className="workout-exercise-list">
                 {workout.exerciseIds.map((exerciseId) => {
-                  const exercise = getExerciseById(exerciseId)
+                  const exercise = getExerciseById(exercises, exerciseId)
                   if (!exercise) return null
                   return (
                     <li key={exercise.id} className="workout-exercise-row">
@@ -122,7 +126,12 @@ function LiftingWorkoutsPage({
       </div>
 
       {selectedExercise && (
-        <ExerciseModal exercise={selectedExercise} onClose={handleCloseExerciseModal} />
+        <ExerciseModal
+          exercise={selectedExercise}
+          exercises={exercises}
+          userId={userId}
+          onClose={handleCloseExerciseModal}
+        />
       )}
     </div>
   )

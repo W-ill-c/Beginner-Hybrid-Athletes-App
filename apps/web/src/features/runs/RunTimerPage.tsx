@@ -12,15 +12,19 @@ import './RunTimerPage.css'
 // This mirrors the redesigned run page from the project's design file
 // (colours, square-cornered "Archivo" look, and the semicircle gauge layout).
 //
-// The UI below is generic: it just draws one arc segment per entry in
-// RUN_STRUCTURE, whatever the mix of types, order, or lengths. That matters
-// because RUN_STRUCTURE is dummy data standing in for what will eventually
+// The UI below is generic: it just draws one arc segment per entry in the
+// `phases` prop, whatever the mix of types, order, or lengths. That matters
+// because the backend's dummy run data stands in for what will eventually
 // be an AI-generated plan - a real one might have a longer or shorter run,
-// more or fewer rest breaks, or a warmup/cooldown of a different length, and
+// more or fewer walk breaks, or a warmup/cooldown of a different length, and
 // none of that should require changing this component.
 
 interface RunTimerPageProps {
   runId: number
+  // The run's phases, fetched from GET /api/runs by the caller (RunsPage) -
+  // this component just draws whatever it's given, so it doesn't care
+  // whether that's 10 phases or 3, or how long each one is.
+  phases: RunPhase[]
   onBack: () => void
   // Lets the caller change what the back button says - e.g. "Back to
   // calendar" instead of "Back to runs" when the run was opened from a
@@ -36,29 +40,6 @@ interface RunPhase {
   type: PhaseType
   durationSeconds: number
 }
-
-// This run's structure, written out one row at a time so it's easy for a
-// human to read straight off the list: a 10-second warmup, six minutes of
-// running split into 1-minute segments with a minute of rest after every
-// two minutes of running, then a 10-second cooldown.
-const RUN_STRUCTURE: RunPhase[] = [
-  { type: 'warmup', durationSeconds: 10 },
-  { type: 'run', durationSeconds: 1 * 60 },
-  { type: 'run', durationSeconds: 1 * 60 },
-  { type: 'rest', durationSeconds: 1 * 60 },
-  { type: 'run', durationSeconds: 1 * 60 },
-  { type: 'run', durationSeconds: 1 * 60 },
-  { type: 'rest', durationSeconds: 1 * 60 },
-  { type: 'run', durationSeconds: 1 * 60 },
-  { type: 'run', durationSeconds: 1 * 60 },
-  { type: 'cooldown', durationSeconds: 10 },
-]
-
-// The rest of this file just calls it PHASES, since that's the generic
-// "list of segments for this run" the UI actually renders - RUN_STRUCTURE is
-// specifically today's hardcoded dummy version of that list.
-const PHASES = RUN_STRUCTURE
-const TOTAL_SECONDS = PHASES.reduce((sum, phase) => sum + phase.durationSeconds, 0)
 
 const PHASE_LABELS: Record<PhaseType, string> = {
   warmup: 'Warmup',
@@ -135,9 +116,17 @@ function getCurrentPhaseIndex(elapsedSeconds: number, phases: RunPhase[]) {
 
 const OVERLAY_D = describeArc(180, 0)
 
-function RunTimerPage({ runId, onBack, backLabel = 'Back to runs', onComplete }: RunTimerPageProps) {
+function RunTimerPage({
+  runId,
+  phases,
+  onBack,
+  backLabel = 'Back to runs',
+  onComplete,
+}: RunTimerPageProps) {
+  const totalSeconds = phases.reduce((sum, phase) => sum + phase.durationSeconds, 0)
+
   const [status, setStatus] = useState<TimerStatus>('idle')
-  const [secondsRemaining, setSecondsRemaining] = useState(TOTAL_SECONDS)
+  const [secondsRemaining, setSecondsRemaining] = useState(totalSeconds)
   const [showCompleteModal, setShowCompleteModal] = useState(false)
   const [instantFill, setInstantFill] = useState(false)
 
@@ -178,7 +167,7 @@ function RunTimerPage({ runId, onBack, backLabel = 'Back to runs', onComplete }:
 
   function handleRestart() {
     setStatus('idle')
-    setSecondsRemaining(TOTAL_SECONDS)
+    setSecondsRemaining(totalSeconds)
   }
 
   function handleFinish() {
@@ -192,16 +181,16 @@ function RunTimerPage({ runId, onBack, backLabel = 'Back to runs', onComplete }:
     onComplete(runId)
   }
 
-  const elapsedSeconds = TOTAL_SECONDS - secondsRemaining
-  const currentPhaseIndex = getCurrentPhaseIndex(elapsedSeconds, PHASES)
-  const currentPhaseLabel = PHASE_LABELS[PHASES[currentPhaseIndex].type]
+  const elapsedSeconds = totalSeconds - secondsRemaining
+  const currentPhaseIndex = getCurrentPhaseIndex(elapsedSeconds, phases)
+  const currentPhaseLabel = PHASE_LABELS[phases[currentPhaseIndex].type]
 
-  const segments = buildSegments(PHASES, TOTAL_SECONDS)
-  const overlayOffset = OVERLAY_LENGTH - OVERLAY_LENGTH * (elapsedSeconds / TOTAL_SECONDS)
+  const segments = buildSegments(phases, totalSeconds)
+  const overlayOffset = OVERLAY_LENGTH - OVERLAY_LENGTH * (elapsedSeconds / totalSeconds)
 
-  // The legend should list each phase type once, even though PHASES can
+  // The legend should list each phase type once, even though `phases` can
   // contain several rows of the same type (multiple 1-minute run rows).
-  const legendPhaseTypes = Array.from(new Set(PHASES.map((phase) => phase.type)))
+  const legendPhaseTypes = Array.from(new Set(phases.map((phase) => phase.type)))
 
   return (
     <div className="run-timer-page">
