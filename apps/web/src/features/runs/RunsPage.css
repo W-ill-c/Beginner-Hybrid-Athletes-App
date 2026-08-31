@@ -1,0 +1,120 @@
+.runs-page {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 20px;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.runs-page h1 {
+  font-size: 32px;
+  margin: 0 0 8px;
+}
+
+.page-subtitle {
+  color: var(--text);
+  margin-bottom: 40px;
+}
+
+.run-progress {
+  display: flex;
+  flex-direction: column;
+}
+
+.run-row-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.run-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.run-node {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 2px solid var(--accent-border);
+  box-sizing: border-box;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s;
+}
+
+.run-node:hover {
+  transform: scale(1.06);
+}
+
+.run-node.done {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-size: 20px;
+  clip-path: polygon(
+    50.0% 0.0%, 64.9% 14.0%, 85.4% 14.6%, 86.0% 35.1%, 100.0% 50.0%, 86.0% 64.9%,
+    85.4% 85.4%, 64.9% 86.0%, 50.0% 100.0%, 35.1% 86.0%, 14.6% 85.4%, 14.0% 64.9%,
+    0.0% 50.0%, 14.0% 35.1%, 14.6% 14.6%, 35.1% 14.0%
+  );
+}
+
+.run-connector {
+  flex: 1 1 auto;
+  min-width: 24px;
+  height: 4px;
+  background: var(--border);
+  margin: 0 4px;
+  border-radius: 2px;
+}
+
+.run-connector.done {
+  background: var(--accent);
+}
+
+.run-turn {
+  display: flex;
+  width: 100%;
+}
+
+.run-turn.align-right {
+  justify-content: flex-end;
+}
+
+.run-turn.align-left {
+  justify-content: flex-start;
+}
+
+.run-turn.align-center {
+  justify-content: center;
+}
+
+.run-turn-line {
+  width: 4px;
+  height: 32px;
+  background: var(--border);
+  margin: 0 26px;
+  border-radius: 2px;
+}
+
+.run-turn-line.done {
+  background: var(--accent);
+}
+
+@media (max-width: 480px) {
+  .run-node {
+    width: 48px;
+    height: 48px;
+    font-size: 16px;
+  }
+}

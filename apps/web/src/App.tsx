@@ -8,8 +8,8 @@ import AccountPage from './features/account/AccountPage'
 import LiftingWorkoutsPage from './features/workouts/LiftingWorkoutsPage'
 import WorkoutDetailPage from './features/workouts/WorkoutDetailPage'
 import ExerciseListPage from './features/exercises/ExerciseListPage'
+import RunsPage from './features/runs/RunsPage'
 import SideNav from './shared/SideNav'
-import BlankPage from './shared/BlankPage'
 import { INITIAL_WORKOUTS } from './data/workouts'
 import type { LiftingWorkout, WorkoutActivity } from './data/workouts'
 import { EXERCISES } from './data/exercises'
@@ -19,14 +19,8 @@ import './App.css'
 // Root component. There's no backend yet and no router: `stage` switches
 // between the welcome page and the sign-up/log-in flows, and (once signed
 // in) `activePage` - driven by the side nav - switches between the main
-// app's pages. Home, Calendar, Account, Lifting Workouts, and Exercise
-// List all have real pages built; Runs is still a BlankPage placeholder.
+// app's pages. Every nav destination now has a real page built.
 type Stage = 'welcome' | 'signup' | 'login' | 'home'
-
-// Page titles for the nav destinations that don't have a real page yet.
-const BLANK_PAGE_TITLES: Record<Exclude<PageKey, 'home' | 'calendar' | 'account' | 'lifting' | 'exercises'>, string> = {
-  runs: 'Runs',
-}
 
 function App() {
   const [stage, setStage] = useState<Stage>('welcome')
@@ -47,6 +41,16 @@ function App() {
   // workout's "+ Add" button) - Exercise List reads this to show its
   // Add/Remove controls and the "Back to <workout>" link.
   const [addTargetWorkoutId, setAddTargetWorkoutId] = useState<string | null>(null)
+
+  // Set when the user should be dropped straight into a specific run's
+  // timer (e.g. via "Workout Now" on a calendar event), instead of landing
+  // on the runs grid first.
+  const [pendingRunId, setPendingRunId] = useState<number | null>(null)
+
+  // True while viewing a workout or run that was reached via "Workout Now"
+  // on a calendar event, so its back button returns to the calendar (and
+  // says so) instead of to the workouts/runs list.
+  const [returnToCalendar, setReturnToCalendar] = useState(false)
 
   function handleSignUpComplete(userEmail: string, userPassword: string) {
     setEmail(userEmail)
@@ -69,6 +73,8 @@ function App() {
     setPassword('')
     setViewingWorkoutId(null)
     setAddTargetWorkoutId(null)
+    setPendingRunId(null)
+    setReturnToCalendar(false)
     setWorkouts(INITIAL_WORKOUTS)
   }
 
@@ -132,7 +138,20 @@ function App() {
 
   function handleStartWorkout(workoutId: string) {
     setViewingWorkoutId(workoutId)
+    setReturnToCalendar(false)
     setActivePage('lifting')
+  }
+
+  function handleStartWorkoutFromCalendar(workoutId: string) {
+    setViewingWorkoutId(workoutId)
+    setReturnToCalendar(true)
+    setActivePage('lifting')
+  }
+
+  function handleStartRunFromCalendar(runId: number) {
+    setPendingRunId(runId)
+    setReturnToCalendar(true)
+    setActivePage('runs')
   }
 
   function handleViewWorkoutDetails(workoutId: string) {
@@ -140,7 +159,19 @@ function App() {
   }
 
   function handleBackToWorkouts() {
+    if (returnToCalendar) {
+      setViewingWorkoutId(null)
+      setReturnToCalendar(false)
+      setActivePage('calendar')
+      return
+    }
     setViewingWorkoutId(null)
+  }
+
+  function handleBackToCalendarFromRuns() {
+    setPendingRunId(null)
+    setReturnToCalendar(false)
+    setActivePage('calendar')
   }
 
   // Hands off to the Exercise List page, with addTargetWorkoutId set so it
@@ -167,6 +198,12 @@ function App() {
     }
     if (page !== 'exercises') {
       setAddTargetWorkoutId(null)
+    }
+    if (page !== 'runs') {
+      setPendingRunId(null)
+    }
+    if (page !== 'lifting' && page !== 'runs') {
+      setReturnToCalendar(false)
     }
     setActivePage(page)
   }
@@ -212,8 +249,8 @@ function App() {
             )}
             {activePage === 'calendar' && (
               <CalendarPage
-                onStartLiftingWorkout={handleStartWorkout}
-                onStartRun={() => setActivePage('runs')}
+                onStartLiftingWorkout={handleStartWorkoutFromCalendar}
+                onStartRun={handleStartRunFromCalendar}
               />
             )}
             {activePage === 'account' && (
@@ -231,6 +268,7 @@ function App() {
               <WorkoutDetailPage
                 workout={viewingWorkout}
                 onBack={handleBackToWorkouts}
+                backLabel={returnToCalendar ? 'Back to calendar' : 'Back to lifting workouts'}
                 onAddExercise={handleAddExerciseClick}
                 onAddExerciseToWorkout={handleAddExerciseToWorkout}
                 onUpdateWarmup={handleUpdateWorkoutWarmup}
@@ -258,7 +296,13 @@ function App() {
                 onReturnToWorkout={handleReturnToWorkout}
               />
             )}
-            {activePage === 'runs' && <BlankPage title={BLANK_PAGE_TITLES.runs} />}
+            {activePage === 'runs' && (
+              <RunsPage
+                initialRunId={pendingRunId}
+                cameFromCalendar={returnToCalendar}
+                onBackToCalendar={handleBackToCalendarFromRuns}
+              />
+            )}
           </main>
         </div>
       )}
