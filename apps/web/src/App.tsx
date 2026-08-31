@@ -19,30 +19,13 @@ import './App.css'
 // Root component. There's no backend yet and no router: `stage` switches
 // between the welcome page and the sign-up/log-in flows, and (once signed
 // in) `activePage` - driven by the side nav - switches between the main
-// app's pages. Only Home, Calendar, and Account have real pages built so
-// far; every other nav destination is still a BlankPage placeholder.
+// app's pages. Home, Calendar, Account, Lifting Workouts, and Exercise
+// List all have real pages built; Runs is still a BlankPage placeholder.
 type Stage = 'welcome' | 'signup' | 'login' | 'home'
 
 // Page titles for the nav destinations that don't have a real page yet.
-const BLANK_PAGE_TITLES: Record<Exclude<PageKey, 'home' | 'calendar' | 'account'>, string> = {
-// app's pages. Only Home, Calendar, and Lifting Workouts have real pages
-// built so far; every other nav destination is still a BlankPage
-// placeholder.
-type Stage = 'welcome' | 'signup' | 'login' | 'home'
-
-// Page titles for the nav destinations that don't have a real page yet.
-const BLANK_PAGE_TITLES: Record<Exclude<PageKey, 'home' | 'calendar' | 'lifting'>, string> = {
+const BLANK_PAGE_TITLES: Record<Exclude<PageKey, 'home' | 'calendar' | 'account' | 'lifting' | 'exercises'>, string> = {
   runs: 'Runs',
-  exercises: 'Exercise List',
-// app's pages. Only Home, Calendar, and Exercise List have real pages built
-// so far; every other nav destination is still a BlankPage placeholder.
-type Stage = 'welcome' | 'signup' | 'login' | 'home'
-
-// Page titles for the nav destinations that don't have a real page yet.
-const BLANK_PAGE_TITLES: Record<Exclude<PageKey, 'home' | 'calendar' | 'exercises'>, string> = {
-  runs: 'Runs',
-  lifting: 'Lifting Workouts',
-  account: 'Account',
 }
 
 function App() {
@@ -50,16 +33,20 @@ function App() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [activePage, setActivePage] = useState<PageKey>('home')
+
+  // The exercise catalog is static (no backend yet), but workouts are
+  // mutable - Lifting Workouts and Exercise List both add/remove exercises
+  // and warmup/cooldown activities on them.
   const [workouts, setWorkouts] = useState<LiftingWorkout[]>(INITIAL_WORKOUTS)
 
   // Which workout's detail page is showing within Lifting Workouts, if any
   // (null shows the workout list instead).
   const [viewingWorkoutId, setViewingWorkoutId] = useState<string | null>(null)
 
-  // The exercise catalog is static (no backend yet), but workouts are
-  // mutable - the Exercise List page can add/remove exercises and
-  // warmup/cooldown activities on them.
-  const [workouts, setWorkouts] = useState<LiftingWorkout[]>(INITIAL_WORKOUTS)
+  // Set while the user is adding an exercise to a specific workout (via a
+  // workout's "+ Add" button) - Exercise List reads this to show its
+  // Add/Remove controls and the "Back to <workout>" link.
+  const [addTargetWorkoutId, setAddTargetWorkoutId] = useState<string | null>(null)
 
   function handleSignUpComplete(userEmail: string, userPassword: string) {
     setEmail(userEmail)
@@ -80,12 +67,17 @@ function App() {
     setActivePage('home')
     setEmail('')
     setPassword('')
+    setViewingWorkoutId(null)
+    setAddTargetWorkoutId(null)
+    setWorkouts(INITIAL_WORKOUTS)
   }
 
   // Deleting the account is functionally the same as logging out for now -
   // there's no backend record to actually delete yet.
   function handleDeleteAccount() {
     handleLogout()
+  }
+
   function handleAddExerciseToWorkout(workoutId: string, exerciseId: string) {
     setWorkouts((prev) =>
       prev.map((workout) =>
@@ -103,6 +95,20 @@ function App() {
           ? { ...workout, exerciseIds: workout.exerciseIds.filter((id) => id !== exerciseId) }
           : workout,
       ),
+    )
+  }
+
+  function handleAddActivityToWorkout(
+    workoutId: string,
+    category: 'warmup' | 'cooldown',
+    activity: WorkoutActivity,
+  ) {
+    setWorkouts((prev) =>
+      prev.map((workout) => {
+        if (workout.id !== workoutId) return workout
+        const alreadyAdded = workout[category].some((existing) => existing.name === activity.name)
+        return alreadyAdded ? workout : { ...workout, [category]: [...workout[category], activity] }
+      }),
     )
   }
 
@@ -137,31 +143,32 @@ function App() {
     setViewingWorkoutId(null)
   }
 
-  // Hands off to the Exercise List page - not built yet, so this just lands
-  // on its BlankPage placeholder for now.
-  function handleAddExerciseClick() {
+  // Hands off to the Exercise List page, with addTargetWorkoutId set so it
+  // shows Add/Remove controls and a "Back to <workout>" link instead of its
+  // normal browse-only view.
+  function handleAddExerciseClick(workoutId: string) {
+    setAddTargetWorkoutId(workoutId)
     setActivePage('exercises')
   }
 
+  // Leaves the "adding an exercise" flow and returns to the workout that
+  // was being edited.
+  function handleReturnToWorkout() {
+    setAddTargetWorkoutId(null)
+    setActivePage('lifting')
+  }
+
+  // Clicking a side nav item leaves whichever "in progress" state belonged
+  // to the page being left, so it doesn't linger the next time that page is
+  // visited.
   function handleNavigate(page: PageKey) {
     if (page !== 'lifting') {
       setViewingWorkoutId(null)
     }
+    if (page !== 'exercises') {
+      setAddTargetWorkoutId(null)
+    }
     setActivePage(page)
-  }
-
-  function handleAddActivityToWorkout(
-    workoutId: string,
-    category: 'warmup' | 'cooldown',
-    activity: WorkoutActivity,
-  ) {
-    setWorkouts((prev) =>
-      prev.map((workout) => {
-        if (workout.id !== workoutId) return workout
-        const alreadyAdded = workout[category].some((existing) => existing.name === activity.name)
-        return alreadyAdded ? workout : { ...workout, [category]: [...workout[category], activity] }
-      }),
-    )
   }
 
   // Display name is whatever's before the @ in the email.
@@ -169,6 +176,9 @@ function App() {
 
   const viewingWorkout = viewingWorkoutId
     ? (workouts.find((workout) => workout.id === viewingWorkoutId) ?? null)
+    : null
+  const addTargetWorkout = addTargetWorkoutId
+    ? (workouts.find((workout) => workout.id === addTargetWorkoutId) ?? null)
     : null
 
   return (
@@ -215,7 +225,6 @@ function App() {
                 onDelete={handleDeleteAccount}
               />
             )}
-            {activePage !== 'home' && activePage !== 'calendar' && activePage !== 'account' && (
             {/* Lifting Workouts shows either one workout's detail page (if
                 the user drilled into one) or the list of all workouts. */}
             {activePage === 'lifting' && viewingWorkout && (
@@ -237,22 +246,19 @@ function App() {
                 onViewDetails={handleViewWorkoutDetails}
               />
             )}
-            {activePage !== 'home' && activePage !== 'calendar' && activePage !== 'lifting' && (
             {activePage === 'exercises' && (
               <ExerciseListPage
-                addTargetWorkoutId={null}
+                addTargetWorkoutId={addTargetWorkoutId}
                 workouts={workouts}
                 exercises={EXERCISES}
                 onAddExerciseToWorkout={handleAddExerciseToWorkout}
                 onRemoveExerciseFromWorkout={handleRemoveExerciseFromWorkout}
                 onAddActivityToWorkout={handleAddActivityToWorkout}
-                returnWorkoutTitle={null}
-                onReturnToWorkout={() => setActivePage('lifting')}
+                returnWorkoutTitle={addTargetWorkout?.title ?? null}
+                onReturnToWorkout={handleReturnToWorkout}
               />
             )}
-            {activePage !== 'home' && activePage !== 'calendar' && activePage !== 'exercises' && (
-              <BlankPage title={BLANK_PAGE_TITLES[activePage]} />
-            )}
+            {activePage === 'runs' && <BlankPage title={BLANK_PAGE_TITLES.runs} />}
           </main>
         </div>
       )}
