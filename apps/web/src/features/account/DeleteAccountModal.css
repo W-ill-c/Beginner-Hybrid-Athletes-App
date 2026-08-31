@@ -1,0 +1,105 @@
+.delete-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 20px;
+  box-sizing: border-box;
+  z-index: 30;
+}
+
+.delete-modal-card {
+  width: 100%;
+  max-width: 380px;
+  padding: 28px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  text-align: left;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.delete-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 22px;
+  line-height: 1;
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: 6px;
+}
+
+.delete-modal-close:hover {
+  color: var(--text-h);
+}
+
+.delete-modal-card h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  padding-right: 24px;
+}
+
+.delete-modal-text {
+  color: var(--text);
+  line-height: 150%;
+  margin: 0 0 20px;
+}
+
+.delete-modal-input {
+  width: 100%;
+  font: inherit;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  box-sizing: border-box;
+  margin-bottom: 20px;
+}
+
+.delete-modal-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.delete-modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-no,
+.btn-yes,
+.btn-confirm {
+  flex: 1;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.btn-no {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.btn-yes,
+.btn-confirm {
+  color: #fff;
+  background: #e0393e;
+  border-color: #e0393e;
+}
+
+.btn-confirm:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
