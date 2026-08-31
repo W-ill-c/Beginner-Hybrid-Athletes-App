@@ -1,0 +1,17 @@
+{
+  "name": "hybrid-athlete-app-tracker",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "workspaces": [
+    "apps/web",
+    "apps/server"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace web",
+    "dev:server": "npm run dev --workspace server",
+    "build:web": "npm run build --workspace web",
+    "build:server": "npm run build --workspace server",
+    "lint": "npm run lint --workspace web"
+  }
+}
