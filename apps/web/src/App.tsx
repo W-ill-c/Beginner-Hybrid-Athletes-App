@@ -1,9 +1,14 @@
+import GetStartedPage from './features/auth/GetStartedPage'
 import './App.css'
 
-// Root component. Nothing built yet - the sign-up flow and the rest of the
-// app land on top of this shell in later branches.
+// Root component. The rest of the app lands on top of this shell in later
+// branches.
 function App() {
-  return <div className="app-shell" />
+  return (
+    <div className="app-shell">
+      <GetStartedPage onSignUp={() => {}} onLogIn={() => {}} />
+    </div>
+  )
 }
 
 export default App

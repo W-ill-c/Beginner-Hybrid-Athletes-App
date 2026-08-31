@@ -1,0 +1,156 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&display=swap');
+
+/* Colours and type lifted from the design file's welcome page - scoped to
+   this page only, since the rest of the app keeps its own theme. */
+.get-started-page {
+  --gs-bg: #f5f0e8;
+  --gs-text: #2b362e;
+  --gs-accent: #6b8063;
+  --gs-accent-300: #bfc4a3;
+  --gs-accent-600: #5a6d53;
+  --gs-accent-700: #4a5a44;
+  --gs-divider: rgba(43, 54, 46, 0.4);
+
+  min-height: 100svh;
+  width: 100%;
+  display: flex;
+  font-family: 'Archivo', system-ui, sans-serif;
+  box-sizing: border-box;
+}
+
+.get-started-hero {
+  flex: 1;
+  background: var(--gs-text);
+  color: var(--gs-bg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 64px;
+  box-sizing: border-box;
+}
+
+.get-started-kicker {
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gs-accent-300);
+  margin-bottom: 24px;
+}
+
+.get-started-hero h1 {
+  font-family: 'Archivo', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 52px;
+  line-height: 1.06;
+  letter-spacing: -0.015em;
+  margin: 0 0 24px;
+  max-width: 520px;
+  color: var(--gs-bg);
+}
+
+.get-started-hero p {
+  font-size: 17px;
+  opacity: 0.75;
+  max-width: 440px;
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+
+.get-started-hero p:last-child {
+  margin-bottom: 0;
+}
+
+.get-started-panel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  box-sizing: border-box;
+  color: var(--gs-text);
+}
+
+.get-started-panel-inner {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.get-started-panel-inner h2 {
+  font-family: 'Archivo', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 25px;
+  letter-spacing: -0.015em;
+  margin: 0 0 4px;
+}
+
+.get-started-subtitle {
+  font-size: 15px;
+  opacity: 0.7;
+  margin: 0 0 12px;
+}
+
+.get-started-page .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-family: 'Archivo', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: 0;
+  border: 1px solid transparent;
+}
+
+.get-started-page .btn-block {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.get-started-page .btn-primary {
+  background: var(--gs-accent);
+  color: var(--gs-bg);
+}
+
+.get-started-page .btn-primary:hover {
+  background: var(--gs-accent-600);
+}
+
+.get-started-page .btn-primary:active {
+  background: var(--gs-accent-700);
+}
+
+.get-started-page .btn-secondary {
+  background: transparent;
+  color: var(--gs-text);
+  border-color: var(--gs-divider);
+}
+
+.get-started-page .btn-secondary:hover {
+  background: rgba(43, 54, 46, 0.07);
+}
+
+.get-started-page .btn-secondary:active {
+  background: rgba(43, 54, 46, 0.14);
+}
+
+@media (max-width: 720px) {
+  .get-started-page {
+    flex-direction: column;
+    min-height: auto;
+  }
+
+  .get-started-hero,
+  .get-started-panel {
+    padding: 40px 24px;
+  }
+
+  .get-started-hero h1 {
+    font-size: 34px;
+  }
+}
