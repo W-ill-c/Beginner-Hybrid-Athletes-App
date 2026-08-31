@@ -1,0 +1,96 @@
+.event-detail-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 20px;
+  box-sizing: border-box;
+  z-index: 20;
+}
+
+.event-detail-card {
+  width: 100%;
+  max-width: 380px;
+  padding: 28px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  text-align: left;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.event-detail-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 22px;
+  line-height: 1;
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: 6px;
+}
+
+.event-detail-close:hover {
+  color: var(--text-h);
+}
+
+.event-detail-tag {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+}
+
+.event-detail-tag.lift {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.event-detail-tag.run {
+  background: #bfc4a3;
+  color: #2b362e;
+}
+
+.event-detail-card h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  padding-right: 24px;
+}
+
+.event-detail-description {
+  color: var(--text);
+  line-height: 150%;
+  margin: 0 0 20px;
+}
+
+.event-detail-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+  margin-bottom: 24px;
+}
+
+.btn-workout-now {
+  width: 100%;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+}

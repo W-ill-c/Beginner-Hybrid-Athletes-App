@@ -3,6 +3,7 @@ import GetStartedPage from './features/auth/GetStartedPage'
 import LoginPage from './features/auth/LoginPage'
 import SignUpWizard from './features/auth/SignUpWizard'
 import HomePage from './features/home/HomePage'
+import CalendarPage from './features/calendar/CalendarPage'
 import SideNav from './shared/SideNav'
 import BlankPage from './shared/BlankPage'
 import type { PageKey } from './types'
@@ -11,13 +12,12 @@ import './App.css'
 // Root component. There's no backend yet and no router: `stage` switches
 // between the welcome page and the sign-up/log-in flows, and (once signed
 // in) `activePage` - driven by the side nav - switches between the main
-// app's pages. Only Home has a real page built so far; every other nav
-// destination is still a BlankPage placeholder.
+// app's pages. Only Home and Calendar have real pages built so far; every
+// other nav destination is still a BlankPage placeholder.
 type Stage = 'welcome' | 'signup' | 'login' | 'home'
 
 // Page titles for the nav destinations that don't have a real page yet.
-const BLANK_PAGE_TITLES: Record<Exclude<PageKey, 'home'>, string> = {
-  calendar: 'Calendar',
+const BLANK_PAGE_TITLES: Record<Exclude<PageKey, 'home' | 'calendar'>, string> = {
   runs: 'Runs',
   lifting: 'Lifting Workouts',
   exercises: 'Exercise List',
@@ -65,9 +65,16 @@ function App() {
         <div className="app-layout">
           <SideNav active={activePage} onNavigate={setActivePage} />
           <main className="app-main">
-            {activePage === 'home' ? (
+            {activePage === 'home' && (
               <HomePage name={name} onStartWorkout={() => setActivePage('lifting')} />
-            ) : (
+            )}
+            {activePage === 'calendar' && (
+              <CalendarPage
+                onStartLiftingWorkout={() => setActivePage('lifting')}
+                onStartRun={() => setActivePage('runs')}
+              />
+            )}
+            {activePage !== 'home' && activePage !== 'calendar' && (
               <BlankPage title={BLANK_PAGE_TITLES[activePage]} />
             )}
           </main>
