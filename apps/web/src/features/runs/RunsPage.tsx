@@ -1,24 +1,35 @@
 import { Fragment, useEffect, useState } from 'react'
 import RunTimerPage from './RunTimerPage'
+import { completeRun, fetchRuns } from '../../api/client'
+import type { ApiRun, ApiRunPhaseType } from '../../api/client'
+import { getCachedRuns, markCachedRunComplete, setCachedRuns } from './runsStore'
 import './RunsPage.css'
 
 // Overview grid of all the user's runs, laid out as a "snake" path (left to
 // right, down, right to left, down, and so on) with up to 3 nodes per row on
 // wide screens, fewer on narrower ones. Clicking a node opens RunTimerPage
-// for that run; finishing a run there marks its node done back here.
+// for that run; finishing a run there marks its node done back here (and
+// persists it via POST /api/runs/:id/complete, so it's still done next time
+// this page is opened).
+//
+// The run plan itself (how many runs, and each one's warmup/run/walk/
+// cooldown phases) comes from GET /api/runs - but only once per login
+// session. Re-opening this page reuses the cached copy (see runsStore.ts)
+// instead of hitting the backend again every time.
 
 interface RunNode {
   id: number
   done: boolean
 }
 
-const TOTAL_RUNS = 9
+// The backend calls the rest-between-running-segments phase "walk" - this
+// page's timer has called the same idea "rest" since before the backend
+// existed, so incoming phases are translated at this one boundary rather
+// than renaming everything downstream.
+type LocalPhaseType = 'warmup' | 'run' | 'rest' | 'cooldown'
 
-function createInitialRuns(): RunNode[] {
-  return Array.from({ length: TOTAL_RUNS }, (_, index) => ({
-    id: index + 1,
-    done: false,
-  }))
+function toLocalPhaseType(type: ApiRunPhaseType): LocalPhaseType {
+  return type === 'walk' ? 'rest' : type
 }
 
 // How many run nodes fit in a row at the current screen width.
@@ -36,6 +47,9 @@ function getDisplayRow(row: RunNode[], rowIndex: number, nodesPerRow: number) {
 }
 
 interface RunsPageProps {
+  // Whose completed-run state to load/save - null before sign-up/login
+  // finishes, in which case every run just shows as not-done.
+  userId: string | null
   // Set when the user should be dropped straight into a specific run's
   // timer (e.g. arriving here via "Workout Now" on a calendar event) rather
   // than seeing the grid first.
@@ -46,7 +60,12 @@ interface RunsPageProps {
   onBackToCalendar?: () => void
 }
 
-function RunsPage({ initialRunId = null, cameFromCalendar = false, onBackToCalendar }: RunsPageProps) {
+function RunsPage({
+  userId,
+  initialRunId = null,
+  cameFromCalendar = false,
+  onBackToCalendar,
+}: RunsPageProps) {
   const [nodesPerRow, setNodesPerRow] = useState(() =>
     typeof window !== 'undefined' ? getNodesPerRow(window.innerWidth) : 3,
   )
@@ -56,13 +75,36 @@ function RunsPage({ initialRunId = null, cameFromCalendar = false, onBackToCalen
   // `cameFromCalendar` prop so picking a different run directly from the
   // grid afterwards doesn't inherit a stale "from calendar" back button.
   const [selectedViaCalendar, setSelectedViaCalendar] = useState(false)
-  const [runs, setRuns] = useState<RunNode[]>(createInitialRuns)
+
+  // Seeded synchronously from the cache when available, so returning to
+  // this page shows the run plan immediately with no re-fetch at all.
+  const [apiRuns, setApiRuns] = useState<ApiRun[] | null>(() => getCachedRuns())
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [runs, setRuns] = useState<RunNode[]>(() => {
+    const cached = getCachedRuns()
+    return cached ? cached.map((run) => ({ id: run.id, done: run.completed })) : []
+  })
 
   useEffect(() => {
     const handleResize = () => setNodesPerRow(getNodesPerRow(window.innerWidth))
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  // Only fetches when nothing's cached yet - see the lazy initial state
+  // above for the cache-hit path.
+  useEffect(() => {
+    if (getCachedRuns()) return
+    fetchRuns(userId ?? undefined)
+      .then(({ runs: fetchedRuns }) => {
+        setCachedRuns(fetchedRuns)
+        setApiRuns(fetchedRuns)
+        setRuns(fetchedRuns.map((run) => ({ id: run.id, done: run.completed })))
+      })
+      .catch((err) => {
+        setLoadError(err instanceof Error ? err.message : 'Could not load the run plan.')
+      })
+  }, [userId])
 
   useEffect(() => {
     if (initialRunId !== null) {
@@ -88,18 +130,34 @@ function RunsPage({ initialRunId = null, cameFromCalendar = false, onBackToCalen
   }
 
   // Marks a run as done and returns to the grid once RunTimerPage reports
-  // that the user finished it.
+  // that the user finished it. The grid updates immediately from local
+  // state - the backend call just needs to land before this page is opened
+  // again, which is when GET /api/runs?userId=... re-fetches and would
+  // otherwise show it as not-done.
   function handleRunComplete(runId: number) {
     setRuns((prev) => prev.map((run) => (run.id === runId ? { ...run, done: true } : run)))
+    markCachedRunComplete(runId)
     setSelectedRunId(null)
     setSelectedViaCalendar(false)
+    if (userId) {
+      completeRun(userId, runId).catch(() => {
+        /* best-effort - the node is already shown as done locally */
+      })
+    }
   }
 
-  // While a run is selected, show its timer page instead of the grid.
-  if (selectedRunId !== null) {
+  const selectedRun = selectedRunId !== null ? apiRuns?.find((run) => run.id === selectedRunId) : undefined
+
+  // While a run is selected (and its phases have loaded), show its timer
+  // page instead of the grid.
+  if (selectedRunId !== null && selectedRun) {
     return (
       <RunTimerPage
         runId={selectedRunId}
+        phases={selectedRun.phases.map((phase) => ({
+          type: toLocalPhaseType(phase.type),
+          durationSeconds: phase.durationSeconds,
+        }))}
         onBack={handleBackToGrid}
         onComplete={handleRunComplete}
         backLabel={selectedViaCalendar ? 'Back to calendar' : 'Back to runs'}
@@ -117,6 +175,8 @@ function RunsPage({ initialRunId = null, cameFromCalendar = false, onBackToCalen
     <div className="runs-page">
       <h1>Runs</h1>
       <p className="page-subtitle">Track your progress through the run plan.</p>
+
+      {loadError && <p className="page-subtitle">{loadError}</p>}
 
       <div className="run-progress">
         {rows.map((row, rowIndex) => {

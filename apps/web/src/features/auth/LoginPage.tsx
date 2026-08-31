@@ -1,21 +1,35 @@
 import { useState } from 'react'
 import './LoginPage.css'
 
-// Log-in card, taken from the project's design file. There's no real
-// backend to check credentials against, so submitting just hands the email
-// and password up to the caller - App treats any non-empty login as a
-// returning user and drops them straight into the app.
+// Log-in card, taken from the project's design file. Submitting calls the
+// backend's POST /api/auth/login - on success the caller gets the matching
+// user record, on failure (wrong email/password) the error is shown here so
+// the user can try again.
 
 interface LoginPageProps {
   onBack: () => void
-  onLogIn: (email: string, password: string) => void
+  onLogIn: (email: string, password: string) => Promise<void>
 }
 
 function LoginPage({ onBack, onLogIn }: LoginPageProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const canLogIn = email.trim() !== '' && password.trim() !== ''
+
+  async function handleLogInClick() {
+    if (!canLogIn || submitting) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      await onLogIn(email, password)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className="login-page">
@@ -47,13 +61,15 @@ function LoginPage({ onBack, onLogIn }: LoginPageProps) {
           />
         </label>
 
+        {error && <span className="login-error">{error}</span>}
+
         <button
           type="button"
           className="btn btn-primary login-submit"
-          disabled={!canLogIn}
-          onClick={() => onLogIn(email, password)}
+          disabled={!canLogIn || submitting}
+          onClick={handleLogInClick}
         >
-          Log in
+          {submitting ? 'Logging in...' : 'Log in'}
         </button>
       </div>
     </div>

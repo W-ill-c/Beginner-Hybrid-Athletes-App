@@ -3,15 +3,18 @@ import './SignUpWizard.css'
 
 // Four-step sign-up flow, taken from the project's design file: 1) choose a
 // plan, 2) email + password, 3) "we sent you a code" notice, 4) enter the
-// 4-digit code. There's no real backend or billing, so choosing a plan,
-// "sending" the email, and "verifying" the code are all just simulated by
-// moving between steps.
+// 4-digit code. There's no billing, so choosing a plan, "sending" the
+// email, and "verifying" the code are all just simulated by moving between
+// steps - only the final Done click hits the backend (creating the account).
 
 type Step = 1 | 2 | 3 | 4
 type Plan = 'basic' | 'premium'
 
 interface SignUpWizardProps {
-  onComplete: (email: string, password: string, plan: Plan) => void
+  // Creates the account on the backend (POST /api/users). Rejects (e.g. the
+  // email is already taken) if the request fails, so the wizard can show
+  // the error and let the user try again instead of moving on.
+  onComplete: (email: string, password: string, plan: Plan) => Promise<void>
   // Leaves the sign-up flow entirely (from the first step, choosing a plan)
   // and returns to the welcome page.
   onBack: () => void
@@ -36,10 +39,24 @@ function SignUpWizard({ onComplete, onBack }: SignUpWizardProps) {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [code, setCode] = useState<string[]>(['', '', '', ''])
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const canCreate =
     email.trim().length > 0 && isValidPassword(password) && confirmPassword === password
   const codeComplete = code.every((digit) => digit.length === 1)
+
+  async function handleDoneClick() {
+    if (!selectedPlan || submitting) return
+    setSubmitting(true)
+    setSubmitError(null)
+    try {
+      await onComplete(email, password, selectedPlan)
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      setSubmitting(false)
+    }
+  }
 
   // Updates a single digit box and, once the user types a digit, moves focus
   // to the next box automatically so they can type the whole code without
@@ -229,6 +246,8 @@ function SignUpWizard({ onComplete, onBack }: SignUpWizardProps) {
             ))}
           </div>
 
+          {submitError && <span className="field-hint field-error">{submitError}</span>}
+
           <div className="wizard-actions">
             <button type="button" className="btn-secondary" onClick={() => setStep(3)}>
               Back
@@ -236,10 +255,10 @@ function SignUpWizard({ onComplete, onBack }: SignUpWizardProps) {
             <button
               type="button"
               className="btn-primary"
-              disabled={!codeComplete || !selectedPlan}
-              onClick={() => selectedPlan && onComplete(email, password, selectedPlan)}
+              disabled={!codeComplete || !selectedPlan || submitting}
+              onClick={handleDoneClick}
             >
-              Done
+              {submitting ? 'Creating account...' : 'Done'}
             </button>
           </div>
         </>

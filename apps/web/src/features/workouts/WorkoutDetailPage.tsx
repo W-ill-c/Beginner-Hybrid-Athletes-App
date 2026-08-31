@@ -25,6 +25,8 @@ type EditableSection = 'warmup' | 'lifts' | 'cooldown'
 
 interface WorkoutDetailPageProps {
   workout: LiftingWorkout
+  exercises: Exercise[]
+  userId: string | null
   onBack: () => void
   // Lets the caller change what the back button says - e.g. "Back to
   // calendar" instead of "Back to lifting workouts" when the workout was
@@ -39,6 +41,8 @@ interface WorkoutDetailPageProps {
 
 function WorkoutDetailPage({
   workout,
+  exercises,
+  userId,
   onBack,
   backLabel = 'Back to lifting workouts',
   onAddExercise,
@@ -152,7 +156,7 @@ function WorkoutDetailPage({
   const displayedExerciseIds =
     editingSection === 'lifts' && draftExerciseIds ? draftExerciseIds : workout.exerciseIds
   const displayedLiftExercises = displayedExerciseIds
-    .map((id) => getExerciseById(id))
+    .map((id) => getExerciseById(exercises, id))
     .filter((exercise): exercise is Exercise => Boolean(exercise))
 
   // --- Tab content ---------------------------------------------------
@@ -312,6 +316,8 @@ function WorkoutDetailPage({
       {selectedExercise && (
         <ExerciseModal
           exercise={selectedExercise}
+          exercises={exercises}
+          userId={userId}
           onClose={handleCloseExerciseModal}
           quickAddWorkout={{
             isExerciseAdded: (exerciseId) => workout.exerciseIds.includes(exerciseId),

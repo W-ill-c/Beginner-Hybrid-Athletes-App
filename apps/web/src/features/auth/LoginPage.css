@@ -70,6 +70,13 @@
   margin-bottom: 14px;
 }
 
+.login-error {
+  display: block;
+  font-size: 13px;
+  color: #e0393e;
+  margin-bottom: 14px;
+}
+
 .login-field span {
   display: block;
   font-size: 12px;

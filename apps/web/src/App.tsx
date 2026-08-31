@@ -13,13 +13,21 @@ import SideNav from './shared/SideNav'
 import { INITIAL_WORKOUTS } from './data/workouts'
 import type { LiftingWorkout, WorkoutActivity } from './data/workouts'
 import { EXERCISES } from './data/exercises'
+import type { Exercise } from './data/exercises'
 import type { PageKey } from './types'
+import * as api from './api/client'
+import type { UserDetails } from './api/client'
+import { clearExerciseLogCache } from './features/exercises/exerciseLogStore'
+import { clearRunsCache } from './features/runs/runsStore'
 import './App.css'
 
-// Root component. There's no backend yet and no router: `stage` switches
-// between the welcome page and the sign-up/log-in flows, and (once signed
-// in) `activePage` - driven by the side nav - switches between the main
-// app's pages. Every nav destination now has a real page built.
+// Root component. There's no router: `stage` switches between the welcome
+// page and the sign-up/log-in flows, and (once signed in) `activePage` -
+// driven by the side nav - switches between the main app's pages. Account
+// details and the workout/exercise catalog come from the backend (apps/
+// server, see src/api/client.ts) once signed in; in-session edits (adding
+// an exercise to a workout, etc.) update local state immediately and save
+// back to the backend best-effort alongside it.
 type Stage = 'welcome' | 'signup' | 'login' | 'home'
 
 function App() {
@@ -28,10 +36,17 @@ function App() {
   const [password, setPassword] = useState('')
   const [activePage, setActivePage] = useState<PageKey>('home')
 
-  // The exercise catalog is static (no backend yet), but workouts are
-  // mutable - Lifting Workouts and Exercise List both add/remove exercises
-  // and warmup/cooldown activities on them.
+  // The signed-in user's id and full details, as returned by the backend -
+  // null until sign-up/login succeeds.
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [accountUser, setAccountUser] = useState<UserDetails | null>(null)
+
+  // Workouts and the exercise catalog start on the local dummy data and get
+  // replaced by the backend's copy once signed in (see loadCatalog below) -
+  // falling back to staying on the dummy data if that fetch fails, so the
+  // app still works if the backend isn't running.
   const [workouts, setWorkouts] = useState<LiftingWorkout[]>(INITIAL_WORKOUTS)
+  const [exercises, setExercises] = useState<Exercise[]>(EXERCISES)
 
   // Which workout's detail page is showing within Lifting Workouts, if any
   // (null shows the workout list instead).
@@ -52,15 +67,47 @@ function App() {
   // says so) instead of to the workouts/runs list.
   const [returnToCalendar, setReturnToCalendar] = useState(false)
 
-  function handleSignUpComplete(userEmail: string, userPassword: string) {
-    setEmail(userEmail)
-    setPassword(userPassword)
-    setStage('home')
+  // Loads the workout and exercise catalogs from the backend once, right
+  // when the user first signs up or logs in. Falls back to staying on the
+  // local dummy copies (already the initial state) if the request fails.
+  async function loadCatalog() {
+    try {
+      const [{ workouts: fetchedWorkouts }, { exercises: fetchedExercises }] = await Promise.all([
+        api.fetchWorkouts(),
+        api.fetchExercises(),
+      ])
+      setWorkouts(fetchedWorkouts)
+      // The backend's muscleGroup column is a plain string; the seeded
+      // catalog only ever writes MuscleGroup values into it, so this
+      // narrowing is safe.
+      setExercises(fetchedExercises as Exercise[])
+    } catch {
+      /* keep the local INITIAL_WORKOUTS/EXERCISES fallbacks */
+    }
   }
 
-  function handleLogIn(userEmail: string, userPassword: string) {
+  async function handleSignUpComplete(userEmail: string, userPassword: string, plan: 'basic' | 'premium') {
+    const user = await api.createUser(userEmail, userPassword, plan)
     setEmail(userEmail)
     setPassword(userPassword)
+    setCurrentUserId(user.id)
+    setStage('home')
+    loadCatalog()
+  }
+
+  // Logging in checks credentials against the backend, then fetches the
+  // full user record - that's what lets the account page show real details
+  // for a returning user.
+  async function handleLogIn(userEmail: string, userPassword: string) {
+    const user = await api.login(userEmail, userPassword)
+    setEmail(userEmail)
+    setPassword(userPassword)
+    setCurrentUserId(user.id)
+    loadCatalog()
+
+    const details = await api.fetchUser(user.id)
+    setAccountUser(details)
+
     setStage('home')
   }
 
@@ -71,37 +118,51 @@ function App() {
     setActivePage('home')
     setEmail('')
     setPassword('')
+    setCurrentUserId(null)
+    setAccountUser(null)
     setViewingWorkoutId(null)
     setAddTargetWorkoutId(null)
     setPendingRunId(null)
     setReturnToCalendar(false)
     setWorkouts(INITIAL_WORKOUTS)
+    setExercises(EXERCISES)
+    clearExerciseLogCache()
+    clearRunsCache()
   }
 
   // Deleting the account is functionally the same as logging out for now -
-  // there's no backend record to actually delete yet.
+  // there's no endpoint yet to actually delete the backend record.
   function handleDeleteAccount() {
     handleLogout()
   }
 
+  // Applies an edit to one workout locally (so the UI updates immediately)
+  // and persists it via PUT /api/workouts/:id - called by every handler
+  // below, since every place a workout can be edited needs to save back to
+  // the backend, not just update local state.
+  function applyWorkoutEdit(workoutId: string, updater: (workout: LiftingWorkout) => LiftingWorkout) {
+    const current = workouts.find((workout) => workout.id === workoutId)
+    if (!current) return
+    const updated = updater(current)
+    setWorkouts((prev) => prev.map((workout) => (workout.id === workoutId ? updated : workout)))
+    api.updateWorkout(workoutId, updated).catch(() => {
+      /* best-effort - the UI already reflects the edit locally */
+    })
+  }
+
   function handleAddExerciseToWorkout(workoutId: string, exerciseId: string) {
-    setWorkouts((prev) =>
-      prev.map((workout) =>
-        workout.id === workoutId && !workout.exerciseIds.includes(exerciseId)
-          ? { ...workout, exerciseIds: [...workout.exerciseIds, exerciseId] }
-          : workout,
-      ),
+    applyWorkoutEdit(workoutId, (workout) =>
+      workout.exerciseIds.includes(exerciseId)
+        ? workout
+        : { ...workout, exerciseIds: [...workout.exerciseIds, exerciseId] },
     )
   }
 
   function handleRemoveExerciseFromWorkout(workoutId: string, exerciseId: string) {
-    setWorkouts((prev) =>
-      prev.map((workout) =>
-        workout.id === workoutId
-          ? { ...workout, exerciseIds: workout.exerciseIds.filter((id) => id !== exerciseId) }
-          : workout,
-      ),
-    )
+    applyWorkoutEdit(workoutId, (workout) => ({
+      ...workout,
+      exerciseIds: workout.exerciseIds.filter((id) => id !== exerciseId),
+    }))
   }
 
   function handleAddActivityToWorkout(
@@ -109,31 +170,22 @@ function App() {
     category: 'warmup' | 'cooldown',
     activity: WorkoutActivity,
   ) {
-    setWorkouts((prev) =>
-      prev.map((workout) => {
-        if (workout.id !== workoutId) return workout
-        const alreadyAdded = workout[category].some((existing) => existing.name === activity.name)
-        return alreadyAdded ? workout : { ...workout, [category]: [...workout[category], activity] }
-      }),
-    )
+    applyWorkoutEdit(workoutId, (workout) => {
+      const alreadyAdded = workout[category].some((existing) => existing.name === activity.name)
+      return alreadyAdded ? workout : { ...workout, [category]: [...workout[category], activity] }
+    })
   }
 
   function handleUpdateWorkoutWarmup(workoutId: string, warmup: WorkoutActivity[]) {
-    setWorkouts((prev) =>
-      prev.map((workout) => (workout.id === workoutId ? { ...workout, warmup } : workout)),
-    )
+    applyWorkoutEdit(workoutId, (workout) => ({ ...workout, warmup }))
   }
 
   function handleUpdateWorkoutCooldown(workoutId: string, cooldown: WorkoutActivity[]) {
-    setWorkouts((prev) =>
-      prev.map((workout) => (workout.id === workoutId ? { ...workout, cooldown } : workout)),
-    )
+    applyWorkoutEdit(workoutId, (workout) => ({ ...workout, cooldown }))
   }
 
   function handleUpdateWorkoutExerciseIds(workoutId: string, exerciseIds: string[]) {
-    setWorkouts((prev) =>
-      prev.map((workout) => (workout.id === workoutId ? { ...workout, exerciseIds } : workout)),
-    )
+    applyWorkoutEdit(workoutId, (workout) => ({ ...workout, exerciseIds }))
   }
 
   function handleStartWorkout(workoutId: string) {
@@ -208,8 +260,10 @@ function App() {
     setActivePage(page)
   }
 
-  // Display name is whatever's before the @ in the email.
-  const name = email ? email.split('@')[0] : 'Athlete'
+  // Display name prefers the first name collected during onboarding (this
+  // app has no onboarding wizard yet, so that's always empty for now),
+  // then falls back to whatever's before the @ in the email.
+  const name = accountUser?.firstName || (email ? email.split('@')[0] : 'Athlete')
 
   const viewingWorkout = viewingWorkoutId
     ? (workouts.find((workout) => workout.id === viewingWorkoutId) ?? null)
@@ -234,7 +288,9 @@ function App() {
       {stage === 'signup' && (
         <div className="centered">
           <SignUpWizard
-            onComplete={(userEmail, userPassword) => handleSignUpComplete(userEmail, userPassword)}
+            onComplete={(userEmail, userPassword, plan) =>
+              handleSignUpComplete(userEmail, userPassword, plan)
+            }
             onBack={() => setStage('welcome')}
           />
         </div>
@@ -256,8 +312,8 @@ function App() {
             {activePage === 'account' && (
               <AccountPage
                 name={name}
-                email={email}
-                password={password}
+                email={accountUser?.email ?? email}
+                password={accountUser?.password ?? password}
                 onLogout={handleLogout}
                 onDelete={handleDeleteAccount}
               />
@@ -267,6 +323,8 @@ function App() {
             {activePage === 'lifting' && viewingWorkout && (
               <WorkoutDetailPage
                 workout={viewingWorkout}
+                exercises={exercises}
+                userId={currentUserId}
                 onBack={handleBackToWorkouts}
                 backLabel={returnToCalendar ? 'Back to calendar' : 'Back to lifting workouts'}
                 onAddExercise={handleAddExerciseClick}
@@ -279,6 +337,8 @@ function App() {
             {activePage === 'lifting' && !viewingWorkout && (
               <LiftingWorkoutsPage
                 workouts={workouts}
+                exercises={exercises}
+                userId={currentUserId}
                 onAddExercise={handleAddExerciseClick}
                 onDeleteExercise={handleRemoveExerciseFromWorkout}
                 onViewDetails={handleViewWorkoutDetails}
@@ -288,7 +348,8 @@ function App() {
               <ExerciseListPage
                 addTargetWorkoutId={addTargetWorkoutId}
                 workouts={workouts}
-                exercises={EXERCISES}
+                exercises={exercises}
+                userId={currentUserId}
                 onAddExerciseToWorkout={handleAddExerciseToWorkout}
                 onRemoveExerciseFromWorkout={handleRemoveExerciseFromWorkout}
                 onAddActivityToWorkout={handleAddActivityToWorkout}
@@ -298,6 +359,7 @@ function App() {
             )}
             {activePage === 'runs' && (
               <RunsPage
+                userId={currentUserId}
                 initialRunId={pendingRunId}
                 cameFromCalendar={returnToCalendar}
                 onBackToCalendar={handleBackToCalendarFromRuns}
