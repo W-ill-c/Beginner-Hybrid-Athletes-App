@@ -3,6 +3,9 @@ import GetStartedPage from './features/auth/GetStartedPage'
 import LoginPage from './features/auth/LoginPage'
 import SignUpWizard from './features/auth/SignUpWizard'
 import HomePage from './features/home/HomePage'
+import OnboardingWizard from './features/home/OnboardingWizard'
+import type { OnboardingSubmission } from './features/home/OnboardingWizard'
+import DisclaimerModal from './features/home/DisclaimerModal'
 import CalendarPage from './features/calendar/CalendarPage'
 import AccountPage from './features/account/AccountPage'
 import LiftingWorkoutsPage from './features/workouts/LiftingWorkoutsPage'
@@ -16,7 +19,7 @@ import { EXERCISES } from './data/exercises'
 import type { Exercise } from './data/exercises'
 import type { PageKey } from './types'
 import * as api from './api/client'
-import type { UserDetails } from './api/client'
+import type { TodayWorkout, UserDetails } from './api/client'
 import { clearExerciseLogCache } from './features/exercises/exerciseLogStore'
 import { clearRunsCache } from './features/runs/runsStore'
 import './App.css'
@@ -34,12 +37,17 @@ function App() {
   const [stage, setStage] = useState<Stage>('welcome')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showOnboarding, setShowOnboarding] = useState(true)
+  const [showDisclaimer, setShowDisclaimer] = useState(false)
   const [activePage, setActivePage] = useState<PageKey>('home')
 
-  // The signed-in user's id and full details, as returned by the backend -
-  // null until sign-up/login succeeds.
+  // The signed-in user's id and details, as returned by the backend - null
+  // until sign-up/login succeeds. `todayWorkout` comes along with them
+  // (either from the onboarding response for a first-time user, or from
+  // fetching user details for a returning one).
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [accountUser, setAccountUser] = useState<UserDetails | null>(null)
+  const [todayWorkout, setTodayWorkout] = useState<TodayWorkout | null>(null)
 
   // Workouts and the exercise catalog start on the local dummy data and get
   // replaced by the backend's copy once signed in (see loadCatalog below) -
@@ -103,12 +111,38 @@ function App() {
     setEmail(userEmail)
     setPassword(userPassword)
     setCurrentUserId(user.id)
+    setShowOnboarding(false)
     loadCatalog()
 
     const details = await api.fetchUser(user.id)
     setAccountUser(details)
+    setTodayWorkout(details.todayWorkout)
 
     setStage('home')
+  }
+
+  // Submits the onboarding wizard's answers to the backend (POST /api/
+  // onboarding), which stores them on the user, updates their profile
+  // fields, and hands back today's workout for the home page.
+  async function handleOnboardingFinish(submission: OnboardingSubmission) {
+    if (!currentUserId) return
+    const { todayWorkout: fetchedTodayWorkout, user } = await api.submitOnboarding(
+      currentUserId,
+      submission,
+    )
+    setTodayWorkout(fetchedTodayWorkout)
+    setAccountUser({ ...user, todayWorkout: fetchedTodayWorkout })
+    setShowOnboarding(false)
+    setShowDisclaimer(true)
+  }
+
+  function handleAcknowledgeDisclaimer() {
+    setShowDisclaimer(false)
+    if (currentUserId) {
+      api.acknowledgeRisk(currentUserId).catch(() => {
+        /* best-effort - the disclaimer has already been dismissed either way */
+      })
+    }
   }
 
   // Logging out just returns to the welcome page - there's no backend
@@ -116,10 +150,13 @@ function App() {
   function handleLogout() {
     setStage('welcome')
     setActivePage('home')
+    setShowOnboarding(true)
+    setShowDisclaimer(false)
     setEmail('')
     setPassword('')
     setCurrentUserId(null)
     setAccountUser(null)
+    setTodayWorkout(null)
     setViewingWorkoutId(null)
     setAddTargetWorkoutId(null)
     setPendingRunId(null)
@@ -260,9 +297,8 @@ function App() {
     setActivePage(page)
   }
 
-  // Display name prefers the first name collected during onboarding (this
-  // app has no onboarding wizard yet, so that's always empty for now),
-  // then falls back to whatever's before the @ in the email.
+  // Display name prefers the first name collected during onboarding, then
+  // falls back to whatever's before the @ in the email.
   const name = accountUser?.firstName || (email ? email.split('@')[0] : 'Athlete')
 
   const viewingWorkout = viewingWorkoutId
@@ -301,7 +337,7 @@ function App() {
           <SideNav active={activePage} onNavigate={handleNavigate} />
           <main className="app-main">
             {activePage === 'home' && (
-              <HomePage name={name} onStartWorkout={handleStartWorkout} />
+              <HomePage name={name} todayWorkout={todayWorkout} onStartWorkout={handleStartWorkout} />
             )}
             {activePage === 'calendar' && (
               <CalendarPage
@@ -366,6 +402,10 @@ function App() {
               />
             )}
           </main>
+          {showOnboarding && (
+            <OnboardingWizard name={name} onFinish={handleOnboardingFinish} />
+          )}
+          {showDisclaimer && <DisclaimerModal onAcknowledge={handleAcknowledgeDisclaimer} />}
         </div>
       )}
     </div>

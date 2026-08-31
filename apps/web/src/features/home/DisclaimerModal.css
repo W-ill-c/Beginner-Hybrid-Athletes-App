@@ -1,0 +1,69 @@
+.disclaimer-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 20px;
+  box-sizing: border-box;
+  z-index: 10;
+}
+
+.disclaimer-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 32px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.disclaimer-card h2 {
+  font-size: 22px;
+  margin: 0 0 12px;
+}
+
+.disclaimer-text {
+  color: var(--text);
+  line-height: 150%;
+  margin: 0 0 14px;
+}
+
+.disclaimer-text:last-of-type {
+  margin-bottom: 24px;
+}
+
+.disclaimer-list {
+  color: var(--text);
+  line-height: 150%;
+  margin: 0 0 14px;
+  padding-left: 20px;
+}
+
+.disclaimer-list li {
+  margin-bottom: 6px;
+}
+
+.disclaimer-list li:last-child {
+  margin-bottom: 0;
+}
+
+.disclaimer-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-acknowledge {
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 10px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+}

@@ -109,6 +109,29 @@ export function fetchUser(userId: string): Promise<UserDetails> {
   return request<UserDetails>(`/users/${userId}`)
 }
 
+export interface OnboardingSubmission extends OnboardingAnswers {
+  firstName: string
+  lastName: string
+  height: string
+  weight: string
+}
+
+export function submitOnboarding(
+  userId: string,
+  submission: OnboardingSubmission,
+): Promise<{ todayWorkout: TodayWorkout; user: ApiUser }> {
+  return request('/onboarding', {
+    method: 'POST',
+    body: JSON.stringify({ userId, ...submission }),
+  })
+}
+
+// Records that the user acknowledged the injury-risk disclaimer shown right
+// after onboarding.
+export function acknowledgeRisk(userId: string): Promise<ApiUser> {
+  return request<ApiUser>(`/users/${userId}/risk-acknowledgement`, { method: 'POST' })
+}
+
 // `userId` is optional so the runs grid still loads before a user is known;
 // pass it to get each run's real completed status back.
 export function fetchRuns(userId?: string): Promise<{ runs: ApiRun[] }> {
